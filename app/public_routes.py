@@ -15,8 +15,13 @@ from app.bounty_sorting import BOUNTY_SORT_LABELS, normalize_bounty_sort
 from app.db import session_scope
 from app.ledger_views import account_ledger_transactions
 from app.models import Bounty, Wallet
-from app.path_params import proof_hash_from_path
-from app.serializers import bounty_list_summary, wallet_to_dict
+from app.path_params import positive_bounty_id, proof_hash_from_path
+from app.serializers import (
+    bounty_awards_to_dict,
+    bounty_list_summary,
+    bounty_to_dict,
+    wallet_to_dict,
+)
 
 
 def public_bounties_context(
@@ -43,11 +48,16 @@ def wallets_page_context(session: Session) -> dict[str, Any]:
     return {"wallets": [wallet_to_dict(session, wallet) for wallet in wallets]}
 
 
-def bounty_page_attempts_context(session: Session, bounty_id: int) -> dict[str, Any]:
+def bounty_page_context(session: Session, bounty_id: int) -> dict[str, Any]:
     bounty = session.get(Bounty, bounty_id)
     if bounty is None:
         raise HTTPException(status_code=404, detail="bounty not found")
-    return list_bounty_attempts(session, bounty, limit=5)
+    bounty_detail = bounty_to_dict(bounty)
+    bounty_detail["accepted_awards"] = bounty_awards_to_dict(session, bounty.id)
+    return {
+        "bounty": bounty_detail,
+        "attempts": list_bounty_attempts(session, bounty, limit=5),
+    }
 
 
 def wallet_page_context(session: Session, address: str) -> dict[str, Any]:
@@ -88,13 +98,13 @@ def register_public_routes(
 
     @app.get("/bounties/{bounty_id}", response_class=HTMLResponse)
     def bounty_page(request: Request, bounty_id: int) -> HTMLResponse:
-        bounty = api_bounty(bounty_id)
+        bounty_id = positive_bounty_id(bounty_id)
         with session_scope(db_url) as session:
-            attempts_context = bounty_page_attempts_context(session, bounty_id)
+            context = bounty_page_context(session, bounty_id)
         return templates.TemplateResponse(
             request,
             "bounty_detail.html",
-            {"bounty": bounty, "attempts": attempts_context},
+            context,
         )
 
     @app.get("/ledger", response_class=HTMLResponse)

@@ -355,11 +355,13 @@ def test_bounty_detail_shows_active_attempt_coordination(sqlite_url: str) -> Non
     client = TestClient(create_app(database_url=sqlite_url, webhook_secret="secret"))
 
     response = client.get(f"/bounties/{bounty_id}")
+    expected_expiry = (now + timedelta(hours=2)).isoformat()[:16].replace("T", " ")
 
     assert response.status_code == 200
     assert "Active attempts" in response.text
     assert "github:alice" in response.text
     assert "active" in response.text
+    assert f"Expires {expected_expiry} UTC" in response.text
     assert 'href="https://github.com/ramimbo/mergework/pull/451"' in response.text
     assert "github:expired" not in response.text
     assert "https://github.com/ramimbo/mergework/pull/999" not in response.text

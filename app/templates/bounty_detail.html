@@ -66,7 +66,7 @@
                 <strong>{{ attempt.submitter_account }}</strong>
                 <span class="ledger-type">{{ attempt.status }}</span>
               </div>
-              <span>Expires {{ attempt.expires_at[:16] | replace("T", " ") }}</span>
+              <span>Expires {{ attempt.expires_at[:16] | replace("T", " ") }} UTC</span>
             </div>
             {% set source_url = safe_public_url(attempt.source_url) %}
             {% if source_url %}
